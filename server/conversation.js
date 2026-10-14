@@ -138,7 +138,7 @@ class Conversation {
       picks,
     };
     const sentence = (ranked && ranked.chat_sentence) || `I found ${picks.length} shows that fit.`;
-    say(this.greet(s, `${sentence} Take a look on the right. Want details on any of them?`));
+    say(this.greet(s, `${sentence.replace(/[.!?\s]+$/, '')}, so take a look on the right and pick the one you like!`));
   }
 
   async results(s, { message, action, today }, say) {

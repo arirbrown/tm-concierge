@@ -48,4 +48,28 @@ Run against today's real Chicago events. The results change daily.
 5. "Yes please!" (parking)
 6. "Yes!" (charge)
 
-SCREENSHOTS_PLACEHOLDER
+### Screenshots (live run, real Claude + real Discovery API)
+
+**Step 1: discovery with real Ticketmaster events**
+
+![Step 1: discovery with real Ticketmaster events](docs/screenshots/step-1.png)
+
+**Step 2: pick the first result, the seat map opens**
+
+![Step 2: pick the first result, the seat map opens](docs/screenshots/step-2.png)
+
+**Step 3: aisle seats near the stage under $200**
+
+![Step 3: aisle seats near the stage under $200](docs/screenshots/step-3.png)
+
+**Step 4: accept seats, parking offer**
+
+![Step 4: accept seats, parking offer](docs/screenshots/step-4.png)
+
+**Step 5: add parking, charge prompt**
+
+![Step 5: add parking, charge prompt](docs/screenshots/step-5.png)
+
+**Step 6: order complete**
+
+![Step 6: order complete](docs/screenshots/step-6.png)

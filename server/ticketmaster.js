@@ -93,7 +93,6 @@ function toCard(event) {
   const cls = (event.classifications && event.classifications[0]) || {};
   const attractions = ((event._embedded && event._embedded.attractions) || []).map((a) => a.name);
   const pr = usablePriceRange(event);
-  const minPrice = event.priceRanges && event.priceRanges[0] && event.priceRanges[0].min > 0 ? event.priceRanges[0].min : null;
   return {
     id: event.id,
     name: event.name,
@@ -109,7 +108,7 @@ function toCard(event) {
     stateCode: (venue.state && venue.state.stateCode) || '',
     genre: [cls.genre && cls.genre.name, cls.subGenre && cls.subGenre.name].filter((g) => g && g !== 'Undefined').join(' / '),
     attractions,
-    tag: minPrice ? `On sale · from $${Math.round(minPrice)}` : 'On sale now',
+    tag: pr ? `On sale · from $${Math.round(pr.min)}` : 'On sale now',
     priceRange: pr,
   };
 }
