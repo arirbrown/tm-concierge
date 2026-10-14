@@ -1,0 +1,19 @@
+{
+  "name": "tm-concierge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Ticketmaster AI Discovery Concierge prototype (hybrid chat + visual interface)",
+  "main": "server/index.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "test": "node --test test/"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.133.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  }
+}

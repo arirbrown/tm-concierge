@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ticketmaster Concierge</title>
+<style>
+  :root {
+    --tm-blue: #024DDF;
+    --chat-blue: #2B5BD7;
+    --navy: #0F1E45;
+    --ink: #1F262D;
+    --muted: #646F7A;
+    --line: #E6E8EB;
+    --green: #2E9E48;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; color: var(--ink); background: #fff; }
+  button { font-family: inherit; cursor: pointer; }
+  .app { display: flex; justify-content: center; align-items: stretch; gap: 120px; height: 100vh; padding: 16px; }
+
+  /* Chat pane */
+  .chat { width: 440px; display: flex; flex-direction: column; min-height: 0; }
+  .chat-header { background: var(--chat-blue); color: #fff; height: 90px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; position: relative; }
+  .chat-header .back { background: none; border: 0; color: #fff; font-size: 30px; line-height: 1; padding: 0 6px; }
+  .chat-header .who { position: absolute; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .avatar { width: 44px; height: 44px; border-radius: 50%; border: 2px solid #fff; background: linear-gradient(160deg, #F2C9B0, #B9826A); display: grid; place-items: center; font-weight: 700; font-size: 18px; color: #fff; }
+  .who-name { font-size: 12px; font-weight: 700; }
+  .reset { background: transparent; border: 1px solid rgba(255,255,255,.7); color: #fff; border-radius: 14px; font-size: 12px; font-weight: 700; padding: 5px 12px; }
+  .reset:hover { background: rgba(255,255,255,.15); }
+  .messages { flex: 1; overflow-y: auto; padding: 14px 20px 20px; display: flex; flex-direction: column; gap: 12px; }
+  .stamp { text-align: center; color: #8A9199; font-size: 11px; font-weight: 700; letter-spacing: .08em; margin-bottom: 4px; }
+  .msg { max-width: 82%; padding: 14px 16px; border-radius: 18px; font-size: 17px; line-height: 1.45; white-space: pre-wrap; }
+  .msg.user { align-self: flex-end; background: #000; color: #fff; }
+  .bot-wrap { align-self: flex-start; max-width: 82%; display: flex; flex-direction: column; gap: 4px; }
+  .msg.bot { max-width: 100%; background: var(--chat-blue); color: #fff; }
+  .fb { display: flex; gap: 2px; padding-left: 10px; }
+  .fb button { background: none; border: 0; padding: 3px; color: #A3AAB2; border-radius: 6px; display: grid; place-items: center; }
+  .fb button:hover { color: var(--chat-blue); background: #EEF2FC; }
+  .fb button.on { color: var(--chat-blue); }
+  .fb svg { width: 15px; height: 15px; }
+  .typing { align-self: flex-start; background: var(--chat-blue); border-radius: 18px; padding: 16px 18px; display: flex; gap: 5px; }
+  .typing span { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.85); animation: blink 1.2s infinite; }
+  .typing span:nth-child(2) { animation-delay: .2s; } .typing span:nth-child(3) { animation-delay: .4s; }
+  @keyframes blink { 0%, 80%, 100% { opacity: .3; } 40% { opacity: 1; } }
+  .composer { background: var(--chat-blue); height: 62px; display: flex; align-items: center; gap: 12px; padding: 0 20px; }
+  .composer svg { flex: none; }
+  .composer input { flex: 1; background: transparent; border: 0; outline: 0; color: #fff; font-size: 17px; }
+  .composer input::placeholder { color: rgba(255,255,255,.9); }
+  .composer button { background: none; border: 0; padding: 4px; display: grid; place-items: center; }
+  .composer button:disabled { opacity: .5; cursor: default; }
+
+  /* Visual pane */
+  .pane { width: 420px; border: 1px solid #EEF0F2; box-shadow: 0 1px 6px rgba(0,0,0,.04); overflow-y: auto; position: relative; background: #fff; }
+  .tm-header { height: 58px; display: flex; align-items: center; justify-content: space-between; padding: 0 18px; background: #fff; }
+  .logo { color: var(--tm-blue); font-weight: 800; font-style: italic; font-size: 25px; letter-spacing: -.03em; }
+  .tm-header .icons { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 14px; }
+  .hero { background: linear-gradient(135deg, #0B1A3E 0%, #1B2B5E 100%); color: #fff; padding: 20px 22px 22px; }
+  .hero h1 { margin: 0 0 8px; font-size: 20px; }
+  .hero p { margin: 0 0 14px; font-size: 13px; color: #C9D2E8; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { display: inline-flex; align-items: center; gap: 7px; padding: 6px 11px; border-radius: 14px; border: 1px solid rgba(255,255,255,.3); background: rgba(255,255,255,.1); font-size: 11.5px; font-weight: 700; }
+  .chip i { width: 6px; height: 6px; border-radius: 50%; background: #3DD68C; }
+  .section-title { padding: 18px 18px 10px; font-size: 12px; font-weight: 700; letter-spacing: .12em; }
+  .section-title::before { content: ""; display: block; width: 18px; height: 3px; background: var(--ink); margin-bottom: 8px; }
+  .row { display: grid; grid-template-columns: 72px 54px 1fr auto; gap: 10px; align-items: center; padding: 10px 18px; border-top: 1px solid var(--line); cursor: pointer; }
+  .row:hover { background: #F7F9FD; }
+  .row img, .row .noimg { width: 72px; height: 72px; object-fit: cover; border-radius: 2px; background: #2A2F45; }
+  .dblock { text-align: center; line-height: 1.05; }
+  .dblock .m { font-size: 11px; font-weight: 700; color: var(--muted); }
+  .dblock .d { font-size: 22px; font-weight: 700; }
+  .dblock .y { font-size: 10px; font-weight: 700; color: var(--muted); }
+  .info { min-width: 0; }
+  .info .dt { font-size: 11.5px; font-weight: 700; color: var(--muted); }
+  .info .nm { font-size: 15.5px; font-weight: 700; margin: 2px 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .info .loc { font-size: 11.5px; color: var(--muted); }
+  .info .tag { font-size: 10px; font-weight: 700; color: var(--tm-blue); margin-top: 4px; }
+  .info .why { font-size: 10.5px; color: #8A9199; font-style: italic; margin-top: 2px; }
+  .find { background: var(--tm-blue); color: #fff; border: 0; border-radius: 2px; padding: 9px 11px; font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+  .find:hover { background: #0141BD; }
+
+  .badge { position: absolute; top: 66px; right: 12px; background: #E3E5E8; color: #4A535C; font-size: 10.5px; font-weight: 700; padding: 4px 9px; border-radius: 10px; letter-spacing: .02em; z-index: 2; }
+  .ev-head { background: var(--tm-blue); color: #fff; padding: 16px 20px 14px; }
+  .ev-head .title { display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 700; padding-right: 110px; }
+  .pill { border: 1.5px solid #fff; color: #fff; border-radius: 12px; font-size: 10px; font-weight: 700; padding: 3px 9px; text-decoration: none; white-space: nowrap; }
+  .ev-head .sub { font-size: 12.5px; margin-top: 5px; line-height: 1.5; }
+  .ev-strip { height: 24px; background: #2D67E0; }
+  .map { background: #EEF0F4; padding: 10px 6px; }
+  .map svg { width: 100%; display: block; }
+  .map text { font-size: 6.5px; font-weight: 700; fill: #1B2B5E; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+  .controls { display: flex; gap: 8px; padding: 12px 18px; }
+  .select, .filters { border: 1.5px solid var(--tm-blue); color: var(--tm-blue); background: #fff; border-radius: 3px; font-weight: 700; font-size: 12.5px; height: 34px; display: flex; align-items: center; padding: 0 11px; }
+  .select { flex: 1; justify-content: space-between; }
+  .filters { gap: 5px; }
+  .hint { margin: 4px 18px; padding: 14px; border: 1px dashed #C9CED6; border-radius: 4px; font-size: 12.5px; color: var(--muted); text-align: center; }
+  .ticket { margin: 0 18px 8px; border: 1px solid var(--line); border-radius: 4px; padding: 10px 12px; display: grid; grid-template-columns: 52px 52px 1fr auto; row-gap: 2px; align-items: end; }
+  .ticket .lbl { font-size: 9px; font-weight: 700; color: var(--muted); }
+  .ticket .val { font-size: 17px; font-weight: 700; }
+  .ticket .kind { grid-column: 1 / 4; font-size: 10.5px; font-weight: 700; color: var(--tm-blue); }
+  .ticket .price { font-size: 12px; font-weight: 700; text-align: right; }
+  .sum { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 18px; font-weight: 700; }
+  .sum small { display: block; font-size: 10px; color: var(--muted); }
+  .sum.sub { font-size: 12.5px; padding-top: 0; color: var(--muted); }
+  .next { margin: 10px 18px 18px; width: calc(100% - 36px); height: 38px; background: var(--green); color: #fff; border: 0; border-radius: 2px; font-weight: 700; font-size: 14px; }
+  .next:disabled { opacity: .55; cursor: default; }
+
+  .order-head { background: var(--tm-blue); color: #fff; height: 53px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; }
+  .order-head .t { font-style: italic; font-weight: 800; font-size: 17px; }
+  .order-head .num { font-size: 12.5px; font-weight: 700; }
+  .order-body { padding: 16px 20px 24px; }
+  .order .badge { top: 62px; }
+  .check { width: 58px; height: 58px; border-radius: 50%; background: var(--green); display: grid; place-items: center; margin: 4px auto 10px; }
+  .order h2 { text-align: center; margin: 0; font-size: 18px; }
+  .order .conf { text-align: center; font-size: 11.5px; color: var(--muted); margin: 4px 0 18px; }
+  .order .ev { padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+  .order .ev b { font-size: 15px; }
+  .order .ev div { font-size: 11.5px; color: var(--muted); margin-top: 6px; }
+  .line { display: flex; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid var(--line); font-size: 12.5px; font-weight: 700; }
+  .line small { display: block; font-weight: 400; font-size: 10.5px; color: var(--muted); margin-top: 3px; }
+  .line.total { border-top: 1.5px solid var(--ink); font-size: 15px; padding: 12px 0; }
+  .line.pay { border-bottom: 0; }
+  .view-tix { width: 100%; height: 38px; margin-top: 24px; background: var(--tm-blue); color: #fff; border: 0; border-radius: 2px; font-weight: 700; font-size: 13.5px; }
+  .note { text-align: center; font-size: 11px; color: var(--muted); margin-top: 8px; min-height: 14px; }
+  .welcome { padding: 28px 22px; color: var(--muted); font-size: 13px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="app">
+  <section class="chat" aria-label="Concierge chat">
+    <header class="chat-header">
+      <button class="back" aria-label="Back">&larr;</button>
+      <div class="who"><div class="avatar" id="avatar">O</div><div class="who-name" id="whoName">Olivia</div></div>
+      <button class="reset" id="reset" title="Clear conversation">Reset</button>
+    </header>
+    <div class="messages" id="messages"></div>
+    <form class="composer" id="composer" autocomplete="off">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="#fff" stroke-width="2"><circle cx="14" cy="14" r="12"/><circle cx="10" cy="11.5" r="1.3" fill="#fff" stroke="none"/><circle cx="18" cy="11.5" r="1.3" fill="#fff" stroke="none"/><path d="M8.5 16.5c1.4 2.2 3.2 3.2 5.5 3.2s4.1-1 5.5-3.2" stroke-linecap="round"/></svg>
+      <input id="input" placeholder="Enter your message..." aria-label="Message">
+      <button type="submit" id="send" aria-label="Send"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M3 3l19 9-19 9 4-9z" fill="#fff"/></svg></button>
+    </form>
+  </section>
+  <section class="pane" id="pane" aria-label="Ticketmaster"></section>
+</div>
+<script>
+(() => {
+  const params = new URLSearchParams(location.search);
+  const NAME = (params.get('name') || 'Olivia').trim() || 'Olivia';
+  const $ = (id) => document.getElementById(id);
+  const messagesEl = $('messages');
+  const pane = $('pane');
+  let busy = false;
+  let stage = 'discovery';
+  let view = null;
+
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const money = (n) => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const post = (url, body) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(body || {}) }).then((r) => r.json());
+
+  const THUMB = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7 11v9H3v-9h4zm0 0l4-8c1.7 0 2.8 1.2 2.5 2.9L13 9h5.6a2 2 0 0 1 2 2.4l-1.4 7A2 2 0 0 1 17.2 20H7"/></svg>';
+
+  function setName(name) {
+    $('whoName').textContent = name;
+    $('avatar').textContent = name.charAt(0).toUpperCase();
+  }
+
+  function stamp() {
+    const d = new Date();
+    const mon = d.toLocaleString('en-US', { month: 'short' }).toUpperCase();
+    const time = d.toLocaleString('en-US', { hour: 'numeric', minute: '2-digit' });
+    return `<div class="stamp">${mon} ${d.getDate()}, ${time}</div>`;
+  }
+
+  function scroll() { messagesEl.scrollTop = messagesEl.scrollHeight; }
+
+  function addMessage(m) {
+    if (m.role === 'user') {
+      messagesEl.insertAdjacentHTML('beforeend', `<div class="msg user">${esc(m.text)}</div>`);
+    } else {
+      messagesEl.insertAdjacentHTML('beforeend', `<div class="bot-wrap"><div class="msg bot">${esc(m.text)}</div>
+        <div class="fb" data-id="${esc(m.id)}"><button data-r="up" aria-label="Helpful" title="Helpful">${THUMB}</button><button data-r="down" aria-label="Not helpful" title="Not helpful" style="transform:scaleY(-1)">${THUMB}</button></div></div>`);
+    }
+    scroll();
+  }
+
+  messagesEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('.fb button');
+    if (!btn) return;
+    const box = btn.parentElement;
+    box.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b === btn));
+    post('/feedback', { messageId: box.dataset.id, rating: btn.dataset.r });
+  });
+
+  function renderHistory(history) {
+    messagesEl.innerHTML = stamp();
+    history.forEach(addMessage);
+  }
+
+  async function send(text, action) {
+    if (busy || !text) return;
+    busy = true;
+    $('send').disabled = true;
+    addMessage({ role: 'user', text });
+    messagesEl.insertAdjacentHTML('beforeend', '<div class="typing" id="typing"><span></span><span></span><span></span></div>');
+    scroll();
+    try {
+      const res = await post('/chat', { message: text, action, today: today() });
+      $('typing')?.remove();
+      (res.replies || []).forEach(addMessage);
+      if (res.stage) stage = res.stage;
+      if (res.view) renderView(res.view);
+    } catch (err) {
+      $('typing')?.remove();
+      addMessage({ role: 'bot', id: '', text: 'Connection problem. Please try again.' });
+    } finally {
+      busy = false;
+      $('send').disabled = false;
+      $('input').focus();
+    }
+  }
+
+  $('composer').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const text = $('input').value.trim();
+    if (!text || busy) return;
+    $('input').value = '';
+    send(text);
+  });
+
+  $('reset').addEventListener('click', async () => {
+    if (busy) return;
+    const s = await post('/reset', { name: NAME });
+    apply(s);
+  });
+
+  const tmHeader = () => `<div class="tm-header"><div class="logo">ticketmaster</div><div class="icons">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#1F262D" stroke-width="1.8"><circle cx="10" cy="10" r="8.5"/></svg><span>Sell</span>
+    <svg width="20" height="16" viewBox="0 0 20 16" stroke="#1F262D" stroke-width="2"><path d="M1 2h18M1 8h18M1 14h18"/></svg></div></div>`;
+
+  function renderView(v) {
+    view = v;
+    if (!v || v.type === 'welcome') {
+      pane.innerHTML = tmHeader() + `<div class="hero"><h1>Hi ${esc(v?.name || NAME)}! Where to?</h1><p>Tell the concierge a city, a date and the vibe you're after.</p></div>
+        <div class="welcome">Your picks will show up here as you chat.</div>`;
+    } else if (v.type === 'discovery') renderDiscovery(v);
+    else if (v.type === 'seats') renderSeats(v);
+    else if (v.type === 'order') renderOrder(v);
+    pane.scrollTop = 0;
+  }
+
+  function renderDiscovery(v) {
+    const rows = v.picks.map((p, i) => `
+      <div class="row" data-i="${i}">
+        ${p.image ? `<img src="${esc(p.image)}" alt="">` : '<div class="noimg"></div>'}
+        <div class="dblock"><div class="m">${esc(p.dateBlock.mon)}</div><div class="d">${esc(p.dateBlock.dd)}</div><div class="y">${esc(p.dateBlock.yyyy)}</div></div>
+        <div class="info"><div class="dt">${esc(p.dayTime)}</div><div class="nm">${esc(p.name)}</div>
+          <div class="loc">${esc([p.city, p.stateCode].filter(Boolean).join(', '))} &bull; ${esc(p.venue)}</div>
+          <div class="tag">${esc(p.tag)}</div>${p.reason ? `<div class="why">${esc(p.reason)}</div>` : ''}</div>
+        <button class="find">Find Tickets &rsaquo;</button>
+      </div>`).join('');
+    pane.innerHTML = tmHeader() + `<div class="hero"><h1>Hi ${esc(v.name)}! ${esc(v.title)}</h1><p>${esc(v.summary)}</p>
+      <div class="chips">${v.chips.map((c) => `<span class="chip"><i></i>${esc(c)}</span>`).join('')}</div></div>
+      <div class="section-title">PICKED FOR YOU</div>${rows}`;
+    pane.querySelectorAll('.row').forEach((row) => row.addEventListener('click', () => {
+      if (stage !== 'results') return;
+      const i = Number(row.dataset.i);
+      send(v.picks[i].name, { type: 'select', index: i, label: v.picks[i].name });
+    }));
+  }
+
+  const COLORS = { available: '#6B97F2', limited: '#A9C1F7', sold: '#CFD3D9' };
+
+  function seatMapSvg(map, selection) {
+    const { view: vb, stage: st, sections } = map;
+    const chosen = selection && selection.section;
+    const shapes = sections.map((s) => {
+      const fill = s.id === chosen ? '#2E9E48' : COLORS[s.availability];
+      const title = `<title>Sec ${s.id} · ${s.availability === 'sold' ? 'Sold out' : '$' + s.price}</title>`;
+      const shape = s.rect
+        ? `<rect x="${s.rect.x}" y="${s.rect.y}" width="${s.rect.w}" height="${s.rect.h}" fill="${fill}" stroke="#fff" stroke-width=".8">${title}</rect>`
+        : `<polygon points="${s.points}" fill="${fill}" stroke="#fff" stroke-width=".8">${title}</polygon>`;
+      return shape + `<text x="${s.label.x}" y="${s.label.y}" ${s.id === chosen ? 'style="fill:#fff"' : ''}>${s.id}</text>`;
+    }).join('');
+    const sel = chosen && sections.find((s) => s.id === chosen);
+    const ring = sel ? `<circle cx="${sel.label.x}" cy="${sel.label.y}" r="17" fill="none" stroke="#2E9E48" stroke-width="2"/>` : '';
+    return `<svg viewBox="0 0 ${vb.w} ${vb.h}" role="img" aria-label="Arena seat map">
+      <ellipse cx="${vb.cx}" cy="${vb.cy}" rx="232" ry="133" fill="#DFE5F0"/>
+      <rect x="${st.x}" y="${st.y}" width="${st.w}" height="${st.h}" rx="3" fill="#111"/>
+      <text x="${st.x + st.w / 2}" y="${st.y + st.h / 2}" style="fill:#fff;font-size:5.5px" transform="rotate(-90 ${st.x + st.w / 2} ${st.y + st.h / 2})">STAGE</text>
+      ${shapes}${ring}</svg>`;
+  }
+
+  function renderSeats(v) {
+    const e = v.event;
+    const sel = v.selection;
+    const qty = sel ? sel.quantity : null;
+    let bottom;
+    if (!sel) {
+      bottom = `<div class="hint">Seats from $${Number(v.map.priceRange.min).toLocaleString()} to $${Number(v.map.priceRange.max).toLocaleString()}. Tell the concierge what you're looking for.</div>`;
+    } else {
+      const cards = sel.seats.map((seat, i) => `
+        <div class="ticket"><div class="lbl">SEC</div><div class="lbl">ROW</div><div class="lbl">SEAT</div><div></div>
+          <div class="val">${esc(sel.section)}</div><div class="val">${esc(sel.row)}</div><div class="val">${seat}</div><div></div>
+          <div class="kind">${esc(sel.label)}${sel.aisle && i === 0 ? ' · Aisle' : ''}</div><div class="price">${money(sel.price)} + Fees</div></div>`).join('');
+      const parking = v.parking ? `<div class="sum sub"><span>Parking · ${esc(v.parking.name)}</span><span>${money(v.parking.price)}</span></div>` : '';
+      bottom = cards + `<div class="sum"><span>Subtotal<small>${qty} Ticket${qty > 1 ? 's' : ''}</small></span><span>${money(sel.subtotal)}</span></div>${parking}
+        <button class="next" id="next" ${stage === 'proposed' ? '' : 'disabled'}>Next</button>`;
+    }
+    pane.innerHTML = tmHeader() + `<span class="badge">Simulated inventory</span>
+      <div class="ev-head"><div class="title">${esc(e.name)} <a class="pill" href="${esc(e.url)}" target="_blank" rel="noopener">More Info</a></div>
+        <div class="sub">${esc(e.dateLong)}<br>${esc(e.venue)}, ${esc([e.city, e.stateCode].filter(Boolean).join(', '))}</div></div>
+      <div class="ev-strip"></div>
+      <div class="map">${seatMapSvg(v.map, sel)}</div>
+      <div class="controls"><div class="select">${qty ? `${qty} Ticket${qty > 1 ? 's' : ''}` : 'Tickets'} <span>&#8964;</span></div>
+        <div class="filters"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Filters</div></div>
+      ${bottom}`;
+    $('next')?.addEventListener('click', () => send('Next', { type: 'accept', label: 'Next' }));
+  }
+
+  function renderOrder(v) {
+    const o = v.order;
+    const sel = o.selection;
+    const seats = sel.seats.length > 1 ? `Seats ${sel.seats[0]}–${sel.seats[sel.seats.length - 1]}` : `Seat ${sel.seats[0]}`;
+    pane.innerHTML = `<div class="order"><div class="order-head"><span class="t">t</span><span class="num">Order ${esc(o.number)}</span></div>
+      <span class="badge">Simulated checkout</span>
+      <div class="order-body">
+        <div class="check"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+        <h2>Order Complete</h2><div class="conf">Confirmation sent to the email on file</div>
+        <div class="ev"><b>${esc(o.event.name)}</b><div>${esc(o.event.dateLong)}</div><div>${esc(o.event.venue)}, ${esc([o.event.city, o.event.stateCode].filter(Boolean).join(', '))}</div></div>
+        <div class="line"><span>${sel.quantity} Ticket${sel.quantity > 1 ? 's' : ''}<small>Sec ${esc(sel.section)}, Row ${esc(sel.row)}, ${seats}${sel.aisle ? ' · Aisle' : ''}</small></span><span>${money(o.totals.tickets)}</span></div>
+        ${o.parking ? `<div class="line"><span>Parking<small>${esc(o.event.venue)} ${esc(o.parking.name)}</small></span><span>${money(o.totals.parking)}</span></div>` : ''}
+        <div class="line"><span>Fees<small>Service &amp; facility</small></span><span>${money(o.totals.fees)}</span></div>
+        <div class="line total"><span>Total</span><span>${money(o.totals.total)}</span></div>
+        <div class="line pay"><span>Payment<small>${esc(o.payment)}</small></span></div>
+        <button class="view-tix" id="viewTix">View Tickets</button><div class="note" id="note"></div>
+      </div></div>`;
+    $('viewTix').addEventListener('click', () => { $('note').textContent = 'Simulated checkout: no real tickets were issued.'; });
+  }
+
+  function apply(s) {
+    setName(s.name || NAME);
+    stage = s.stage || 'discovery';
+    renderHistory(s.history || []);
+    renderView(s.view);
+    $('input').focus();
+  }
+
+  setName(NAME);
+  post('/state', { name: NAME }).then(apply);
+})();
+</script>
+</body>
+</html>
